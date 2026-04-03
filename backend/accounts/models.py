@@ -106,3 +106,39 @@ class Profile(models.Model):
     def __str__(self):
         return f"perfil de {self.user.email}"
         
+class Address(models.Model):
+    ADDRESS_TYPE_CHOICES = [
+        ('home', 'Residencial'),
+        ('work', 'Comercial'),
+        ('other', 'Outro')
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='addresses')
+    address_type = models.CharField(max_length=10, blank=True, null=True, choices=ADDRESS_TYPE_CHOICES, default='home')
+    full_name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=20)
+    street = models.CharField(max_length=255)
+    district = models.CharField(max_length=100, blank=True)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=2)
+    postal_code = models.CharField(max_length=20, blank=True)
+    country = models.CharField(max_length=100, default='Brasil')
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'addresses'
+        verbose_name_plural = 'Addresses'
+        Indexes = [
+            models.Index(fields=['user', 'is_default']),
+        ]
+        
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            Address.objects.filter(user=self.user, is_default=True).update(is_default=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.street}, {self.city}, {self.state}, {self.country}"
