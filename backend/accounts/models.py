@@ -16,6 +16,11 @@ class UserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
         return self.create_user(email, password, **extra_fields)
     
 class User(AbstractUser, PermissionsMixin):
@@ -41,11 +46,63 @@ class User(AbstractUser, PermissionsMixin):
         return self.email    
     
 class Profile(models.Model):
+    GENDER_CHOICES = [
+        ('female', 'Feminino'),
+        ('male', 'Masculino'),
+        ('other', 'Outro')
+    ]
+    
+    SIZE_CHOICES = [
+        ('S', 'Pequeno'),
+        ('M', 'Médio'),
+        ('L', 'Grande'),
+        ('XL', 'Extra Grande'),
+        ('XXL', 'Extra Extra Grande')
+    ]
+    
+    SIZE_SYSTEM_CHOICES = [
+        ('US', 'Estados Unidos'),
+        ('EU', 'Europa'),
+        ('UK', 'Reino Unido'),
+        ('JP', 'Japão'),
+        ('BR', 'Brasil')
+    ]
+    
+    CURRENCY_CHOICES = [
+        ('USD', 'Dólar Americano'),
+        ('EUR', 'Euro'),
+        ('GBP', 'Libra Esterlina'),
+        ('JPY', 'Iene Japonês'),
+        ('BRL', 'Real Brasileiro')
+    ]
+    
+    LANGUAGE_CHOICES = [
+        ('en', 'Inglês'),
+        ('pt', 'Português'),
+        ('es', 'Espanhol'),
+        ('fr', 'Francês'),
+        ('de', 'Alemão')
+    ]
+    
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    first_name = models.CharField(max_length=30, blank=True)
-    last_name = models.CharField(max_length=30, blank=True)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    name = models.CharField(max_length=100, blank=True, default='')
+    gender = models.CharField(max_length=10, blank=True, null=True, choices=GENDER_CHOICES)
+    preferred_size = models.CharField(max_length=3, blank=True, null=True, choices=SIZE_CHOICES)
+    size_system = models.CharField(max_length=3, blank=True, default='US', choices=SIZE_SYSTEM_CHOICES)
+    language = models.CharField(max_length=2, blank=True, default='pt', choices=LANGUAGE_CHOICES)
+    currency = models.CharField(max_length=3, blank=True, default='BRL', choices=CURRENCY_CHOICES)
+    country = models.CharField(max_length=100, blank=True, default='Brasil')
+    style_preferences = models.JSONField(blank=True, default=dict)
+    fcm_token = models.CharField(max_length=255, blank=True, null=True)
+    height_cm = models.PositiveIntegerField(max_digits=5, decimal_places=2, blank=True, null=True)
+    weight_kg = models.PositiveIntegerField(max_digits=5, decimal_places=2, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'profiles'
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return f"perfil de {self.user.email}"
         
