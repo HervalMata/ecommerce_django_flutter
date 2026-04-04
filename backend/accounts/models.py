@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
 import uuid
@@ -131,7 +131,7 @@ class Address(models.Model):
     class Meta:
         db_table = 'addresses'
         verbose_name_plural = 'Addresses'
-        Indexes = [
+        indexes = [
             models.Index(fields=['user', 'is_default']),
         ]
         

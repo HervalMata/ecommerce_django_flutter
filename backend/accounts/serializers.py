@@ -7,7 +7,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'phone', 'date_joined']
         read_only_fields = ['id', 'date_joined']
         
-class UserRegistrationSerializer(serializers.ModelSerializer):
+class UserRegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8, max_length=128)
     phone = serializers.CharField(required=False, allow_blank=True)
@@ -25,10 +25,10 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ['user', 'avatar', 'gender', 'preferred_size', 'style_preferences', 'height_cm', 'weight_kg', 'size_system', 'language', 'currency', 'country', 'created_at', 'updated_at', 'name']
-        read_only_fields = ['created_at', 'updated_at' ]
+        read_only_fields = ['user', 'created_at', 'updated_at' ]
         
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
         fields = ['id', 'user', 'address_type', 'full_name', 'phone', 'street', 'district', 'city', 'state', 'postal_code', 'country', 'is_default', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']           
+        read_only_fields = ['id','user', 'created_at', 'updated_at']           

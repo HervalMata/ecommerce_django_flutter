@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate
 from .models import Profile
 from .serializers import UserSerializer, UserRegistrationSerializer, UserLoginSerializer, ProfileSerializer, AddressSerializer
 from .services import AccountService
+from django.core.exceptions import ValidationError
 
 # Create your views here.
 @api_view(['POST'])
@@ -14,11 +15,14 @@ from .services import AccountService
 def register(request):
     serializer = UserRegistrationSerializer(data=request.data)
     if serializer.is_valid():
-        user = AccountService.create_user(
-            email=serializer.validated_data['email'],
-            password=serializer.validated_data['password'],
-            phone=serializer.validated_data.get('phone')
-        )
+        try:
+            user = AccountService.create_user(
+                email=serializer.validated_data['email'],
+                password=serializer.validated_data['password'],
+                phone=serializer.validated_data.get('phone')
+            )
+        except ValidationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         refresh = RefreshToken.for_user(user)
         return Response({
             "user": UserSerializer(user).data,
@@ -52,8 +56,8 @@ def login(request):
 
 @api_view(['GET','PATCH'])
 @permission_classes([IsAuthenticated])
-def Profile(request):
-    profile = Profile.objects.get(user=request.user)
+def profile_view(request):
+    profile = request.user.profile
     if request.method == 'GET':
         return Response(ProfileSerializer(profile, context={'request': request}).data)
     elif request.method == 'PATCH':
@@ -71,3 +75,48 @@ def fcm_token(request):
         return Response({"error": "FCM token is required."}, status=status.HTTP_400_BAD_REQUEST)
     AccountService.update_fcm_token(request.user, fcm_token)
     return Response({"detail": "FCM token updated successfully."}, status=status.HTTP_200_OK)    
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def addresses(request):
+    if request.method == 'GET':
+        addresses = AccountService.get_user_addresses(request.user)
+        return Response(AddressSerializer(addresses, many=True, context={'request': request}).data)
+    elif request.method == 'POST':
+        serializer = AddressSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            address = AccountService.create_address(request.user, **serializer.validated_data)
+            return Response(AddressSerializer(address, context={'request': request}).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['GET','PUT','PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated]) 
+def address_detail(request, address_id):
+    try:
+        if request.method == 'GET':
+            address = AccountService.get_address(request.user, address_id)
+            return Response(AddressSerializer(address).data)
+        elif request.method in ['PUT', 'PATCH']:
+            serializer = AddressSerializer(data= request.data, partial= (request.method == 'PATCH'))
+            if serializer.is_valid():
+                address = AccountService.update_address(request.user, address_id, **serializer.validated_data)
+                serializer.save()
+                return Response(AddressSerializer(address).data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        elif request.method == 'DELETE':
+            address = AccountService.get_address(request.user, address_id)
+            address.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT) 
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_default_address(request, address_id):
+    try:
+        address = AccountService.set_default_address(request.user, address_id)
+        return Response(AddressSerializer(address).data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        
+      
