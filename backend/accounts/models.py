@@ -95,8 +95,8 @@ class Profile(models.Model):
     country = models.CharField(max_length=100, blank=True, default='Brasil')
     style_preferences = models.JSONField(blank=True, default=dict)
     fcm_token = models.CharField(max_length=255, blank=True, null=True)
-    height_cm = models.PositiveIntegerField(max_digits=5, decimal_places=2, blank=True, null=True)
-    weight_kg = models.PositiveIntegerField(max_digits=5, decimal_places=2, blank=True, null=True)
+    height_cm = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    weight_kg = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
