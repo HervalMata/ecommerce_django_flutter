@@ -15,14 +15,14 @@ from django.core.exceptions import ValidationError
 def register(request):
     serializer = UserRegistrationSerializer(data=request.data)
     if serializer.is_valid():
-        try:
-            user = AccountService.create_user(
-                email=serializer.validated_data['email'],
-                password=serializer.validated_data['password'],
-                phone=serializer.validated_data.get('phone')
-            )
-        except ValidationError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        #try:
+        user = AccountService.create_user(
+            email=serializer.validated_data['email'],
+            password=serializer.validated_data['password'],
+            phone=serializer.validated_data.get('phone')
+        )
+        #except ValidationError as e:
+            #return Response({"detail": e.message}, status=status.HTTP_400_BAD_REQUEST)
         refresh = RefreshToken.for_user(user)
         return Response({
             "user": UserSerializer(user).data,
@@ -57,7 +57,7 @@ def login(request):
 @api_view(['GET','PATCH'])
 @permission_classes([IsAuthenticated])
 def profile_view(request):
-    profile = request.user.profile
+    profile, _ = Profile.objects.get_or_create(user=request.user)
     if request.method == 'GET':
         return Response(ProfileSerializer(profile, context={'request': request}).data)
     elif request.method == 'PATCH':
@@ -76,7 +76,7 @@ def fcm_token(request):
     AccountService.update_fcm_token(request.user, fcm_token)
     return Response({"detail": "FCM token updated successfully."}, status=status.HTTP_200_OK)    
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def addresses(request):
     if request.method == 'GET':
@@ -92,7 +92,7 @@ def addresses(request):
 @api_view(['GET','PUT','PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated]) 
 def address_detail(request, address_id):
-    try:
+    #try:
         if request.method == 'GET':
             address = AccountService.get_address(request.user, address_id)
             return Response(AddressSerializer(address).data)
@@ -100,23 +100,22 @@ def address_detail(request, address_id):
             serializer = AddressSerializer(data= request.data, partial= (request.method == 'PATCH'))
             if serializer.is_valid():
                 address = AccountService.update_address(request.user, address_id, **serializer.validated_data)
-                serializer.save()
                 return Response(AddressSerializer(address).data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         elif request.method == 'DELETE':
             address = AccountService.get_address(request.user, address_id)
             address.delete()
         return Response(status=status.HTTP_204_NO_CONTENT) 
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+    #except Exception as e:
+        #return Response({"error": e.message}, status=status.HTTP_404_NOT_FOUND)
     
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def set_default_address(request, address_id):
-    try:
+    #try:
         address = AccountService.set_default_address(request.user, address_id)
         return Response(AddressSerializer(address).data, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+    #except Exception as e:
+        #return Response({"error": e.message}, status=status.HTTP_404_NOT_FOUND)
         
       
